@@ -360,6 +360,69 @@
           "description": "A JSON array of operations run in order, or - to read it from stdin: [{\"op\":\"replace\",\"pattern\":\"a\",\"replacement\":\"b\",\"word\":true},{\"op\":\"insert_after\",\"line\":2,\"text\":\"x\"},{\"op\":\"delete_lines\",\"start\":4,\"end\":5},{\"op\":\"replace_lines\",\"start\":1,\"end\":1,\"text\":\"y\"},{\"op\":\"prepend\",\"text\":\"p\"},{\"op\":\"append\",\"text\":\"q\"}]"
         }
       ]
+    },
+    {
+      "name": "webget",
+      "access": "read",
+      "returns": "object",
+      "description": "HTTP(S) GET one URL. Returns status (non-2xx is a normal result, ok: false), final_url (after redirects), content_type, a few response headers, and body: text, or {\"$blob_base64\": ...} for binary. A body over maxBytes (default 64 KiB) is written in full to a spill file (spilled: true, file.path, preview); --out writes the full body to that file instead. format text turns HTML into readable plain text (tags, scripts and styles dropped). Request header values are never echoed. Example: lmtools webget https://example.com/docs --format text",
+      "params": [
+        {
+          "name": "url",
+          "type": "string",
+          "positional": true,
+          "description": "http:// or https:// URL"
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "occurs": "?",
+          "description": "raw (default) or text (HTML to plain text)"
+        },
+        {
+          "name": "out",
+          "type": "string",
+          "occurs": "?",
+          "description": "Write the full body to this file (atomic; parent dirs created) and return a preview"
+        },
+        {
+          "name": "maxBytes",
+          "type": "number",
+          "occurs": "?",
+          "description": "Largest body returned inline (default 65536, at most 1048576); bigger bodies spill to a file"
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "occurs": "?",
+          "description": "Skip this many body bytes first"
+        },
+        {
+          "name": "timeoutMs",
+          "type": "number",
+          "occurs": "?",
+          "description": "Whole-call timeout including redirects and the body (default 20000, at most 300000)"
+        },
+        {
+          "name": "followRedirects",
+          "type": "boolean",
+          "occurs": "?",
+          "default": true,
+          "description": "Follow redirects (at most 10)"
+        },
+        {
+          "name": "headers",
+          "type": "object",
+          "occurs": "?",
+          "description": "Extra request headers, e.g. {\"Accept\": \"application/json\"}"
+        },
+        {
+          "name": "userAgent",
+          "type": "string",
+          "occurs": "?",
+          "description": "User-Agent (default lmtools/<version>)"
+        }
+      ]
     }
   ]
 }

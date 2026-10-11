@@ -36,7 +36,7 @@ fn schema(
 
 /// The operation schemas, in published order.
 pub fn schemas() -> Vec<OperationSchema> {
-  use ops::{list, read};
+  use ops::{list, read, webget};
   vec![
     schema(
       "list_files",
@@ -161,6 +161,27 @@ pub fn schemas() -> Vec<OperationSchema> {
         opt("script", ParamType::String, "A JSON array of operations run in order, or - to read it from stdin: [{\"op\":\"replace\",\"pattern\":\"a\",\"replacement\":\"b\",\"word\":true},{\"op\":\"insert_after\",\"line\":2,\"text\":\"x\"},{\"op\":\"delete_lines\",\"start\":4,\"end\":5},{\"op\":\"replace_lines\",\"start\":1,\"end\":1,\"text\":\"y\"},{\"op\":\"prepend\",\"text\":\"p\"},{\"op\":\"append\",\"text\":\"q\"}]"),
       ],
     ),
+    schema(
+      "webget",
+      Access::Read,
+      "HTTP(S) GET one URL. Returns status (non-2xx is a normal result, ok: false), final_url (after redirects), content_type, a few response headers, and body: text, or {\"$blob_base64\": ...} for binary. A body over maxBytes (default 64 KiB) is written in full to a spill file (spilled: true, file.path, preview); --out writes the full body to that file instead. format text turns HTML into readable plain text (tags, scripts and styles dropped). Request header values are never echoed. Example: lmtools webget https://example.com/docs --format text",
+      vec![
+        ParamSpec::new("url", ParamType::String)
+          .positional()
+          .describe("http:// or https:// URL"),
+        opt("format", ParamType::String, "raw (default) or text (HTML to plain text)"),
+        opt("out", ParamType::String, "Write the full body to this file (atomic; parent dirs created) and return a preview"),
+        opt("maxBytes", ParamType::Number, &format!("Largest body returned inline (default {}, at most {}); bigger bodies spill to a file", webget::DEFAULT_MAX_BYTES, webget::MAX_INLINE_BYTES)),
+        opt("offset", ParamType::Number, "Skip this many body bytes first"),
+        opt("timeoutMs", ParamType::Number, &format!("Whole-call timeout including redirects and the body (default {}, at most {})", webget::DEFAULT_TIMEOUT_MS, webget::MAX_TIMEOUT_MS)),
+        ParamSpec::new("followRedirects", ParamType::Boolean)
+          .optional()
+          .with_default(json!(true))
+          .describe(format!("Follow redirects (at most {})", webget::MAX_REDIRECTS)),
+        opt("headers", ParamType::Object, "Extra request headers, e.g. {\"Accept\": \"application/json\"}"),
+        opt("userAgent", ParamType::String, "User-Agent (default lmtools/<version>)"),
+      ],
+    ),
   ]
 }
 
@@ -210,6 +231,9 @@ pub fn spec() -> CliSpec<Policy> {
     }))
     .op(def("edit_file", Access::Write, |params, policy| {
       handle(|| ops::edit::run(&Params(params), &ctx(policy)))
+    }))
+    .op(def("webget", Access::Read, |params, policy| {
+      handle(|| ops::webget::run(&Params(params), &ctx(policy), &|_| Ok(()), None))
     }))
 }
 

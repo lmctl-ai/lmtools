@@ -65,6 +65,17 @@ pub fn run_call(args: &[&str], call: &Call) -> Out {
     .env_remove("LMTOOLS_READONLY")
     .env_remove("LMTOOLS_DRYRUN")
     .env("LMTOOLS_CONFIG", "/nonexistent/lmtools-test/settings.json");
+  // The local test server must never be reached through a proxy.
+  for var in [
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+  ] {
+    cmd.env_remove(var);
+  }
   for (k, v) in &call.env {
     cmd.env(k, v);
   }

@@ -4,8 +4,10 @@
 pub mod atomic;
 pub mod diff;
 pub mod error;
+pub mod html;
 pub mod legacy;
 pub mod ops;
+pub mod output;
 pub mod spec;
 pub mod text_edit;
 pub mod util;

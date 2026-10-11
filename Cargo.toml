@@ -20,6 +20,8 @@ regex = "1"
 # webget: small blocking HTTP client, rustls TLS with the bundled Mozilla roots (no async runtime,
 # no system TLS); no gzip (bodies are reported as served).
 ureq = { version = "2", default-features = false, features = ["tls"] }
+# webget: resolving redirect Locations and removing credentials from reported URLs (ureq's own).
+url = "2"
 
 [target.'cfg(unix)'.dependencies]
 # geteuid: the default spill directory must belong to the current user.

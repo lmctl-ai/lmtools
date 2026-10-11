@@ -3,6 +3,7 @@
 pub mod edit;
 pub mod list;
 pub mod read;
+pub mod webget;
 pub mod write;
 
 use crate::error::{Result, ToolError};
