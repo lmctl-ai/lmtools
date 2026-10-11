@@ -1,0 +1,212 @@
+{
+  "schema": "cli.schema.v1",
+  "tool": "lmtools",
+  "version": "0.1.0",
+  "policy": {
+    "dryrun": true,
+    "readonly": true
+  },
+  "inputs": [
+    "flags",
+    "json"
+  ],
+  "globals": [
+    {
+      "name": "dryrun",
+      "type": "boolean",
+      "occurs": "?",
+      "description": "Simulate write operations",
+      "aliases": [
+        "dry-run"
+      ]
+    },
+    {
+      "name": "readonly",
+      "type": "boolean",
+      "occurs": "?",
+      "description": "Refuse to run write operations",
+      "aliases": [
+        "read-only"
+      ]
+    },
+    {
+      "name": "confirm",
+      "type": "boolean",
+      "occurs": "?",
+      "description": "Confirm dangerous operations",
+      "aliases": [
+        "i-understand"
+      ]
+    },
+    {
+      "name": "json",
+      "type": "boolean",
+      "occurs": "?",
+      "description": "Output as JSON"
+    },
+    {
+      "name": "help",
+      "type": "boolean",
+      "occurs": "?",
+      "description": "Show help",
+      "aliases": [
+        "h"
+      ]
+    },
+    {
+      "name": "list",
+      "type": "boolean",
+      "occurs": "?",
+      "description": "List operations as JSON"
+    },
+    {
+      "name": "schema",
+      "type": "boolean",
+      "occurs": "?",
+      "description": "Print schema document"
+    },
+    {
+      "name": "explain",
+      "type": "string",
+      "occurs": "?",
+      "description": "Explain an operation"
+    },
+    {
+      "name": "format",
+      "type": "string",
+      "occurs": "?",
+      "description": "Format for explain (text or json)"
+    },
+    {
+      "name": "input-json",
+      "type": "string",
+      "occurs": "?",
+      "description": "JSON document input",
+      "aliases": [
+        "inputJson"
+      ]
+    },
+    {
+      "name": "input-graphql",
+      "type": "string",
+      "occurs": "?",
+      "description": "GraphQL document input",
+      "aliases": [
+        "inputGraphql"
+      ]
+    },
+    {
+      "name": "input-file",
+      "type": "string",
+      "occurs": "?",
+      "description": "Path to file containing JSON document input",
+      "aliases": [
+        "inputFile"
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "name": "list_files",
+      "access": "read",
+      "returns": "object",
+      "description": "List a directory (sorted; recursive is depth-first). Entries: name, path, type (file|dir|symlink|other), size, mtime. Page with offset/limit until next_offset is null. Symlinked dirs are listed, not followed. Example: lmtools list_files src --recursive --glob '**/*.rs'",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "occurs": "?",
+          "default": ".",
+          "positional": true,
+          "description": "Directory to list"
+        },
+        {
+          "name": "recursive",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Descend into subdirectories"
+        },
+        {
+          "name": "maxDepth",
+          "type": "number",
+          "occurs": "?",
+          "description": "With recursive: levels to descend (1 = only the directory itself)"
+        },
+        {
+          "name": "glob",
+          "type": "string",
+          "occurs": "?",
+          "description": "Keep entries matching this glob (* ? [..] **): the name, or the relative path if the glob has a /"
+        },
+        {
+          "name": "includeHidden",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Include dot files and dot directories"
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "occurs": "?",
+          "description": "Skip this many entries (from next_offset)"
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "occurs": "?",
+          "description": "Entries per page (default 200, at most 5000)"
+        }
+      ]
+    },
+    {
+      "name": "read_file",
+      "access": "read",
+      "returns": "object",
+      "description": "Read a page of a text file, by bytes (offset/maxBytes, default 64 KiB) or by lines (startLine/endLine). Returns content, eof, next_offset / next_start_line to continue, total_size, total_lines (files up to 8 MiB). Binary files (NUL in the first 8 KiB) need asBase64. Example: lmtools read_file src/main.rs --start-line 40 --end-line 80 --line-numbers",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "positional": true,
+          "description": "File to read"
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "occurs": "?",
+          "description": "Byte offset to start at (from next_offset)"
+        },
+        {
+          "name": "maxBytes",
+          "type": "number",
+          "occurs": "?",
+          "description": "Page size in bytes (default 65536, at most 1048576); also caps a line page"
+        },
+        {
+          "name": "startLine",
+          "type": "number",
+          "occurs": "?",
+          "description": "Line mode: first line (1-based)"
+        },
+        {
+          "name": "endLine",
+          "type": "number",
+          "occurs": "?",
+          "description": "Line mode: last line (inclusive)"
+        },
+        {
+          "name": "lineNumbers",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Prefix each line with its number (cat -n style)"
+        },
+        {
+          "name": "asBase64",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Return the bytes as content_base64 (for binary files)"
+        }
+      ]
+    }
+  ]
+}

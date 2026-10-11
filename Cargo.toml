@@ -1,0 +1,40 @@
+[package]
+name = "lmtools"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.79"
+license = "MIT"
+authors = ["Lattice Systems LLC"]
+description = "The file and web tool belt for LLM agents: list, read, write, edit and webget (lmapi native tool)"
+repository = "https://github.com/lmctl-ai/lmtools"
+readme = "README.md"
+keywords = ["llm", "cli", "lmapi", "files", "agent"]
+categories = ["command-line-utilities", "filesystem"]
+
+[dependencies]
+# lmapi server runtime. No default features: lmtools prints sorted-key JSON (no preserve_order).
+lmrust = { git = "https://github.com/lmctl-ai/lmrust", tag = "v0.1.2", default-features = false }
+serde_json = "1"
+# edit_file (the engine ported from lmprobe) and globs: linear-time regexes, full Unicode.
+regex = "1"
+# webget: small blocking HTTP client, rustls TLS with the bundled Mozilla roots (no async runtime,
+# no system TLS); no gzip (bodies are reported as served).
+ureq = { version = "2", default-features = false, features = ["tls"] }
+
+[target.'cfg(unix)'.dependencies]
+# geteuid: the default spill directory must belong to the current user.
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
+
+# Dev/test builds are optimized so the big-file tests run in seconds; debug info is kept.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+lto = true
+strip = "symbols"
