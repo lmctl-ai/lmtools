@@ -207,6 +207,159 @@
           "description": "Return the bytes as content_base64 (for binary files)"
         }
       ]
+    },
+    {
+      "name": "write_file",
+      "access": "write",
+      "returns": "object",
+      "description": "Write one file atomically (temp file + rename; an existing file keeps its permissions). Content from content, contentBase64 or stdin (at most 16 MiB). mode: overwrite (default), create (fails if it exists) or append. Refuses symlinks, non-regular and hard-linked files. --dry-run reports what would change (with a diff) and writes nothing. Example: lmtools write_file notes/todo.md --content '- ship it' --mode create --create-parents",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "positional": true,
+          "description": "File to write"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "occurs": "?",
+          "description": "The text to write"
+        },
+        {
+          "name": "contentBase64",
+          "type": "string",
+          "occurs": "?",
+          "description": "The bytes to write, base64-encoded (binary content)"
+        },
+        {
+          "name": "stdin",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Read the content from standard input"
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "occurs": "?",
+          "enum": [
+            "overwrite",
+            "create",
+            "append"
+          ],
+          "description": "overwrite (default), create (fail if the file exists) or append"
+        },
+        {
+          "name": "createParents",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Create missing parent directories"
+        }
+      ]
+    },
+    {
+      "name": "edit_file",
+      "access": "write",
+      "returns": "object",
+      "description": "Edit one existing UTF-8 file in place, atomically; returns a unified diff and counts. Choose ONE edit: pattern + replacement (literal; regex for Rust regex with $1 / ${name}; word for whole words; first for the first match only; ignoreCase), insertBefore / insertAfter N + text, deleteLines START:END, replaceLines START:END + text, prepend / append + text, or script (a JSON array of ops run in order). Lines are 1-based and inclusive; CRLF files stay CRLF. expectedCount fails with EDIT_COUNT_MISMATCH (writing nothing) unless exactly that many replacements happen. --dry-run shows the diff without writing. Example: lmtools edit_file src/lib.rs --pattern old_name --replacement new_name --word --expected-count 3",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "positional": true,
+          "description": "File to edit"
+        },
+        {
+          "name": "pattern",
+          "type": "string",
+          "occurs": "?",
+          "description": "Text to find (literal unless regex)"
+        },
+        {
+          "name": "replacement",
+          "type": "string",
+          "occurs": "?",
+          "description": "Replacement for pattern (with regex: $1, ${name}, $$ for $)"
+        },
+        {
+          "name": "regex",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "pattern is a Rust regex (no lookaround/backreferences; (?m) (?s) flags work)"
+        },
+        {
+          "name": "word",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Match whole (Unicode) words only"
+        },
+        {
+          "name": "first",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Replace only the first match"
+        },
+        {
+          "name": "ignoreCase",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Case-insensitive pattern"
+        },
+        {
+          "name": "expectedCount",
+          "type": "number",
+          "occurs": "?",
+          "description": "Fail unless exactly this many replacements are made"
+        },
+        {
+          "name": "insertBefore",
+          "type": "number",
+          "occurs": "?",
+          "description": "Insert text before this line"
+        },
+        {
+          "name": "insertAfter",
+          "type": "number",
+          "occurs": "?",
+          "description": "Insert text after this line"
+        },
+        {
+          "name": "deleteLines",
+          "type": "string",
+          "occurs": "?",
+          "description": "Delete lines START:END (or one line N)"
+        },
+        {
+          "name": "replaceLines",
+          "type": "string",
+          "occurs": "?",
+          "description": "Replace lines START:END (or N) with text"
+        },
+        {
+          "name": "prepend",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Add text at the very beginning, exactly as given"
+        },
+        {
+          "name": "append",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Add text at the very end, exactly as given"
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "occurs": "?",
+          "description": "Text for insertBefore/insertAfter/replaceLines/prepend/append"
+        },
+        {
+          "name": "script",
+          "type": "string",
+          "occurs": "?",
+          "description": "A JSON array of operations run in order, or - to read it from stdin: [{\"op\":\"replace\",\"pattern\":\"a\",\"replacement\":\"b\",\"word\":true},{\"op\":\"insert_after\",\"line\":2,\"text\":\"x\"},{\"op\":\"delete_lines\",\"start\":4,\"end\":5},{\"op\":\"replace_lines\",\"start\":1,\"end\":1,\"text\":\"y\"},{\"op\":\"prepend\",\"text\":\"p\"},{\"op\":\"append\",\"text\":\"q\"}]"
+        }
+      ]
     }
   ]
 }

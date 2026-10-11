@@ -122,7 +122,54 @@ pub fn schemas() -> Vec<OperationSchema> {
         ),
       ],
     ),
+    schema(
+      "write_file",
+      Access::Write,
+      "Write one file atomically (temp file + rename; an existing file keeps its permissions). Content from content, contentBase64 or stdin (at most 16 MiB). mode: overwrite (default), create (fails if it exists) or append. Refuses symlinks, non-regular and hard-linked files. --dry-run reports what would change (with a diff) and writes nothing. Example: lmtools write_file notes/todo.md --content '- ship it' --mode create --create-parents",
+      vec![
+        path_param("File to write"),
+        opt("content", ParamType::String, "The text to write"),
+        opt("contentBase64", ParamType::String, "The bytes to write, base64-encoded (binary content)"),
+        opt("stdin", ParamType::Boolean, "Read the content from standard input"),
+        ParamSpec::new("mode", ParamType::String)
+          .optional()
+          .with_enum([json!("overwrite"), json!("create"), json!("append")])
+          .describe("overwrite (default), create (fail if the file exists) or append"),
+        opt("createParents", ParamType::Boolean, "Create missing parent directories"),
+      ],
+    ),
+    schema(
+      "edit_file",
+      Access::Write,
+      "Edit one existing UTF-8 file in place, atomically; returns a unified diff and counts. Choose ONE edit: pattern + replacement (literal; regex for Rust regex with $1 / ${name}; word for whole words; first for the first match only; ignoreCase), insertBefore / insertAfter N + text, deleteLines START:END, replaceLines START:END + text, prepend / append + text, or script (a JSON array of ops run in order). Lines are 1-based and inclusive; CRLF files stay CRLF. expectedCount fails with EDIT_COUNT_MISMATCH (writing nothing) unless exactly that many replacements happen. --dry-run shows the diff without writing. Example: lmtools edit_file src/lib.rs --pattern old_name --replacement new_name --word --expected-count 3",
+      vec![
+        path_param("File to edit"),
+        opt("pattern", ParamType::String, "Text to find (literal unless regex)"),
+        opt("replacement", ParamType::String, "Replacement for pattern (with regex: $1, ${name}, $$ for $)"),
+        opt("regex", ParamType::Boolean, "pattern is a Rust regex (no lookaround/backreferences; (?m) (?s) flags work)"),
+        opt("word", ParamType::Boolean, "Match whole (Unicode) words only"),
+        opt("first", ParamType::Boolean, "Replace only the first match"),
+        opt("ignoreCase", ParamType::Boolean, "Case-insensitive pattern"),
+        opt("expectedCount", ParamType::Number, "Fail unless exactly this many replacements are made"),
+        opt("insertBefore", ParamType::Number, "Insert text before this line"),
+        opt("insertAfter", ParamType::Number, "Insert text after this line"),
+        opt("deleteLines", ParamType::String, "Delete lines START:END (or one line N)"),
+        opt("replaceLines", ParamType::String, "Replace lines START:END (or N) with text"),
+        opt("prepend", ParamType::Boolean, "Add text at the very beginning, exactly as given"),
+        opt("append", ParamType::Boolean, "Add text at the very end, exactly as given"),
+        opt("text", ParamType::String, "Text for insertBefore/insertAfter/replaceLines/prepend/append"),
+        opt("script", ParamType::String, "A JSON array of operations run in order, or - to read it from stdin: [{\"op\":\"replace\",\"pattern\":\"a\",\"replacement\":\"b\",\"word\":true},{\"op\":\"insert_after\",\"line\":2,\"text\":\"x\"},{\"op\":\"delete_lines\",\"start\":4,\"end\":5},{\"op\":\"replace_lines\",\"start\":1,\"end\":1,\"text\":\"y\"},{\"op\":\"prepend\",\"text\":\"p\"},{\"op\":\"append\",\"text\":\"q\"}]"),
+      ],
+    ),
   ]
+}
+
+/// lmrust's policy globals as the call context.
+fn ctx(policy: &Policy) -> ops::Ctx {
+  ops::Ctx {
+    dry_run: policy.dry_run,
+    read_only: policy.read_only,
+  }
 }
 
 /// Run an op body and map its error into the lmapi envelope.
@@ -157,6 +204,12 @@ pub fn spec() -> CliSpec<Policy> {
     }))
     .op(def("read_file", Access::Read, |params, _| {
       handle(|| ops::read::run(&Params(params)))
+    }))
+    .op(def("write_file", Access::Write, |params, policy| {
+      handle(|| ops::write::run(&Params(params), &ctx(policy)))
+    }))
+    .op(def("edit_file", Access::Write, |params, policy| {
+      handle(|| ops::edit::run(&Params(params), &ctx(policy)))
     }))
 }
 

@@ -1,11 +1,58 @@
 //! The operations. Each takes the validated lmapi params and returns the result document.
 
+pub mod edit;
 pub mod list;
 pub mod read;
+pub mod write;
 
 use crate::error::{Result, ToolError};
 use lmrust::Record;
 use serde_json::Value;
+
+/// How a call runs, from lmrust's policy globals.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Ctx {
+  /// `--dry-run` / `LMTOOLS_DRYRUN`: print what would happen, never write.
+  pub dry_run: bool,
+  /// `--readonly` / `LMTOOLS_READONLY`: write ops are refused.
+  pub read_only: bool,
+}
+
+impl Ctx {
+  /// Refuse a write op under `--readonly`.
+  pub fn writable(&self, op: &str) -> Result<()> {
+    if self.read_only {
+      return Err(ToolError::new(
+        lmrust::server::ErrorCode::ReadOnlyViolation,
+        "READONLY_VIOLATION",
+        format!("{op} writes, and this call runs with --readonly"),
+      ));
+    }
+    Ok(())
+  }
+}
+
+/// Read all of stdin, at most `max` bytes (more is an error).
+pub fn read_stdin(max: u64) -> Result<Vec<u8>> {
+  use std::io::Read;
+  let mut buf = Vec::new();
+  std::io::stdin()
+    .lock()
+    .take(max + 1)
+    .read_to_end(&mut buf)
+    .map_err(|e| ToolError::io("read", std::path::Path::new("<stdin>"), &e))?;
+  if buf.len() as u64 > max {
+    return Err(too_large("stdin", max));
+  }
+  Ok(buf)
+}
+
+pub fn too_large(what: &str, max: u64) -> ToolError {
+  ToolError::invalid(
+    "TOO_LARGE",
+    format!("{what} is larger than {} MiB", max >> 20),
+  )
+}
 
 /// Typed access to validated params.
 pub struct Params<'a>(pub &'a Record);

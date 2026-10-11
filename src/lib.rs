@@ -1,10 +1,13 @@
 //! lmtools: the file and web tool belt for LLM agents. A native lmapi tool (`lmtools --schema`)
 //! built on lmrust: list_files, read_file, write_file, edit_file, webget.
 
+pub mod atomic;
+pub mod diff;
 pub mod error;
 pub mod legacy;
 pub mod ops;
 pub mod spec;
+pub mod text_edit;
 pub mod util;
 
 /// Run with the arguments after the binary name; returns the exit code.
