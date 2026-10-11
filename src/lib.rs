@@ -8,6 +8,8 @@ pub mod html;
 pub mod legacy;
 pub mod ops;
 pub mod output;
+pub mod permissions;
+pub mod settings;
 pub mod spec;
 pub mod text_edit;
 pub mod util;

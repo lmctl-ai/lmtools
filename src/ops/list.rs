@@ -1,8 +1,9 @@
 //! `list_files`: a directory listing, optionally recursive, in a deterministic order
 //! (depth-first, each directory's entries sorted by name), paged with offset/limit.
 
-use super::Params;
+use super::{Ctx, Params};
 use crate::error::{Result, ToolError};
+use crate::permissions::{manual_path, Need};
 use crate::util::{absolute, glob_regex, rfc3339};
 use serde_json::{json, Value};
 use std::path::Path;
@@ -89,9 +90,12 @@ impl Walk {
   }
 }
 
-pub fn run(p: &Params) -> Result<Value> {
+pub fn run(p: &Params, ctx: &Ctx) -> Result<Value> {
   let given = p.str("path").unwrap_or(".");
   let root = absolute(given)?;
+  ctx
+    .gate
+    .check_path(&root, given, Need::Read, || manual_path("ls -la", given))?;
   let meta = std::fs::metadata(&root).map_err(|e| ToolError::io("list", &root, &e))?;
   if !meta.is_dir() {
     return Err(ToolError::invalid(

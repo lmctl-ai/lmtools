@@ -155,6 +155,12 @@
           "type": "number",
           "occurs": "?",
           "description": "Entries per page (default 200, at most 5000)"
+        },
+        {
+          "name": "dangerouslyBypassPermissionSettings",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Skip the settings file's permission rules for this call (paths, hosts, output.dir); works only if the settings file sets allow_bypass: true. Limits still apply"
         }
       ]
     },
@@ -205,6 +211,12 @@
           "type": "boolean",
           "occurs": "?",
           "description": "Return the bytes as content_base64 (for binary files)"
+        },
+        {
+          "name": "dangerouslyBypassPermissionSettings",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Skip the settings file's permission rules for this call (paths, hosts, output.dir); works only if the settings file sets allow_bypass: true. Limits still apply"
         }
       ]
     },
@@ -254,6 +266,12 @@
           "type": "boolean",
           "occurs": "?",
           "description": "Create missing parent directories"
+        },
+        {
+          "name": "dangerouslyBypassPermissionSettings",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Skip the settings file's permission rules for this call (paths, hosts, output.dir); works only if the settings file sets allow_bypass: true. Limits still apply"
         }
       ]
     },
@@ -358,6 +376,12 @@
           "type": "string",
           "occurs": "?",
           "description": "A JSON array of operations run in order, or - to read it from stdin: [{\"op\":\"replace\",\"pattern\":\"a\",\"replacement\":\"b\",\"word\":true},{\"op\":\"insert_after\",\"line\":2,\"text\":\"x\"},{\"op\":\"delete_lines\",\"start\":4,\"end\":5},{\"op\":\"replace_lines\",\"start\":1,\"end\":1,\"text\":\"y\"},{\"op\":\"prepend\",\"text\":\"p\"},{\"op\":\"append\",\"text\":\"q\"}]"
+        },
+        {
+          "name": "dangerouslyBypassPermissionSettings",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Skip the settings file's permission rules for this call (paths, hosts, output.dir); works only if the settings file sets allow_bypass: true. Limits still apply"
         }
       ]
     },
@@ -421,6 +445,12 @@
           "type": "string",
           "occurs": "?",
           "description": "User-Agent (default lmtools/<version>)"
+        },
+        {
+          "name": "dangerouslyBypassPermissionSettings",
+          "type": "boolean",
+          "occurs": "?",
+          "description": "Skip the settings file's permission rules for this call (paths, hosts, output.dir); works only if the settings file sets allow_bypass: true. Limits still apply"
         }
       ]
     }

@@ -6,6 +6,7 @@ use super::{read_stdin, too_large, Ctx, Params};
 use crate::atomic::{self, Existing, MAX_FILE_BYTES};
 use crate::diff::unified;
 use crate::error::{Result, ToolError};
+use crate::permissions::{manual_path, Need};
 use crate::text_edit::{parse_range, parse_script, transform, EditOperation};
 use crate::util::absolute;
 use lmrust::server::ErrorCode;
@@ -120,6 +121,9 @@ pub fn run(p: &Params, ctx: &Ctx) -> Result<Value> {
     .str("path")
     .ok_or_else(|| ToolError::invalid("INVALID_PATH", "path is required"))?;
   let target = absolute(given)?;
+  ctx.gate.check_path(&target, given, Need::Write, || {
+    manual_path("\"${EDITOR:-vi}\"", given)
+  })?;
   let ops = operations(p)?;
   let expected = p.opt_uint("expectedCount", 0, u32::MAX as u64)?;
   if expected.is_some()

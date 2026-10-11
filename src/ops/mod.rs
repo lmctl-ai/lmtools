@@ -10,13 +10,14 @@ use crate::error::{Result, ToolError};
 use lmrust::Record;
 use serde_json::Value;
 
-/// How a call runs, from lmrust's policy globals.
-#[derive(Debug, Clone, Copy, Default)]
+/// How a call runs: lmrust's policy globals and the permission gate.
 pub struct Ctx {
   /// `--dry-run` / `LMTOOLS_DRYRUN`: print what would happen, never write.
   pub dry_run: bool,
   /// `--readonly` / `LMTOOLS_READONLY`: write ops are refused.
   pub read_only: bool,
+  /// The settings file's rules (open without one, or with an allowed bypass).
+  pub gate: crate::permissions::Gate,
 }
 
 impl Ctx {

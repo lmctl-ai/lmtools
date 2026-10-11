@@ -2,6 +2,9 @@
 
 use crate::error::{Result, ToolError};
 use crate::ops::{self, Params};
+use crate::permissions::Gate;
+use crate::settings;
+use lmrust::server::ErrorCode;
 use lmrust::server::{CliError, CliSpec, OpDef, Policy};
 use lmrust::{Access, InputForm, OperationSchema, ParamSpec, ParamType, Record, ReturnType};
 use serde_json::{json, Value};
@@ -78,6 +81,7 @@ pub fn schemas() -> Vec<OperationSchema> {
             list::MAX_LIMIT
           ),
         ),
+        bypass_param(),
       ],
     ),
     schema(
@@ -120,6 +124,7 @@ pub fn schemas() -> Vec<OperationSchema> {
           ParamType::Boolean,
           "Return the bytes as content_base64 (for binary files)",
         ),
+        bypass_param(),
       ],
     ),
     schema(
@@ -136,6 +141,7 @@ pub fn schemas() -> Vec<OperationSchema> {
           .with_enum([json!("overwrite"), json!("create"), json!("append")])
           .describe("overwrite (default), create (fail if the file exists) or append"),
         opt("createParents", ParamType::Boolean, "Create missing parent directories"),
+        bypass_param(),
       ],
     ),
     schema(
@@ -159,6 +165,7 @@ pub fn schemas() -> Vec<OperationSchema> {
         opt("append", ParamType::Boolean, "Add text at the very end, exactly as given"),
         opt("text", ParamType::String, "Text for insertBefore/insertAfter/replaceLines/prepend/append"),
         opt("script", ParamType::String, "A JSON array of operations run in order, or - to read it from stdin: [{\"op\":\"replace\",\"pattern\":\"a\",\"replacement\":\"b\",\"word\":true},{\"op\":\"insert_after\",\"line\":2,\"text\":\"x\"},{\"op\":\"delete_lines\",\"start\":4,\"end\":5},{\"op\":\"replace_lines\",\"start\":1,\"end\":1,\"text\":\"y\"},{\"op\":\"prepend\",\"text\":\"p\"},{\"op\":\"append\",\"text\":\"q\"}]"),
+        bypass_param(),
       ],
     ),
     schema(
@@ -180,17 +187,54 @@ pub fn schemas() -> Vec<OperationSchema> {
           .describe(format!("Follow redirects (at most {})", webget::MAX_REDIRECTS)),
         opt("headers", ParamType::Object, "Extra request headers, e.g. {\"Accept\": \"application/json\"}"),
         opt("userAgent", ParamType::String, "User-Agent (default lmtools/<version>)"),
+        bypass_param(),
       ],
     ),
   ]
 }
 
-/// lmrust's policy globals as the call context.
-fn ctx(policy: &Policy) -> ops::Ctx {
-  ops::Ctx {
+/// `--dangerously-bypass-permission-settings`: on every operation.
+pub const BYPASS_PARAM: &str = "dangerouslyBypassPermissionSettings";
+
+fn bypass_param() -> ParamSpec {
+  opt(
+    BYPASS_PARAM,
+    ParamType::Boolean,
+    "Skip the settings file's permission rules for this call (paths, hosts, output.dir); works only if the settings file sets allow_bypass: true. Limits still apply",
+  )
+}
+
+/// The call context: lmrust's policy globals and the settings file's gate (with the bypass flag).
+fn ctx(params: &Record, policy: &Policy) -> Result<ops::Ctx> {
+  let env = |k: &str| std::env::var(k).ok();
+  let settings = settings::load(&env, &mut |w| eprintln!("{w}"))?;
+  let bypass = params.get(BYPASS_PARAM) == Some(&Value::Bool(true));
+  let gate = match settings {
+    None => Gate::open(),
+    Some(s) if bypass => {
+      if !s.allow_bypass {
+        return Err(ToolError::new(
+          ErrorCode::Forbidden,
+          "BYPASS_NOT_ALLOWED",
+          format!(
+            "--dangerously-bypass-permission-settings is not allowed: the operator must set \"allow_bypass\": true in {}",
+            s.source.display()
+          ),
+        ));
+      }
+      eprintln!(
+        "lmtools: permission settings bypassed for this call (allow_bypass is true in {})",
+        s.source.display()
+      );
+      Gate::open()
+    }
+    Some(s) => Gate::new(s)?,
+  };
+  Ok(ops::Ctx {
     dry_run: policy.dry_run,
     read_only: policy.read_only,
-  }
+    gate,
+  })
 }
 
 /// Run an op body and map its error into the lmapi envelope.
@@ -220,20 +264,20 @@ pub fn spec() -> CliSpec<Policy> {
     .version(env!("CARGO_PKG_VERSION"))
     .description("File and web tools for LLM agents: list, read, write, edit, webget")
     .inputs([InputForm::Flags, InputForm::Json])
-    .op(def("list_files", Access::Read, |params, _| {
-      handle(|| ops::list::run(&Params(params)))
+    .op(def("list_files", Access::Read, |params, policy| {
+      handle(|| ops::list::run(&Params(params), &ctx(params, policy)?))
     }))
-    .op(def("read_file", Access::Read, |params, _| {
-      handle(|| ops::read::run(&Params(params)))
+    .op(def("read_file", Access::Read, |params, policy| {
+      handle(|| ops::read::run(&Params(params), &ctx(params, policy)?))
     }))
     .op(def("write_file", Access::Write, |params, policy| {
-      handle(|| ops::write::run(&Params(params), &ctx(policy)))
+      handle(|| ops::write::run(&Params(params), &ctx(params, policy)?))
     }))
     .op(def("edit_file", Access::Write, |params, policy| {
-      handle(|| ops::edit::run(&Params(params), &ctx(policy)))
+      handle(|| ops::edit::run(&Params(params), &ctx(params, policy)?))
     }))
     .op(def("webget", Access::Read, |params, policy| {
-      handle(|| ops::webget::run(&Params(params), &ctx(policy), &|_| Ok(()), None))
+      handle(|| ops::webget::run(&Params(params), &ctx(params, policy)?))
     }))
 }
 

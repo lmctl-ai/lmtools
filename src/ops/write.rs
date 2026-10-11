@@ -5,6 +5,8 @@ use super::{read_stdin, too_large, Ctx, Params};
 use crate::atomic::{self, Existing, MAX_FILE_BYTES};
 use crate::diff::unified;
 use crate::error::{Result, ToolError};
+use crate::permissions::Need;
+use crate::util::shell_quote;
 use crate::util::{absolute, base64_decode};
 use serde_json::{json, Value};
 
@@ -48,6 +50,23 @@ pub fn run(p: &Params, ctx: &Ctx) -> Result<Value> {
     .str("path")
     .ok_or_else(|| ToolError::invalid("INVALID_PATH", "path is required"))?;
   let target = absolute(given)?;
+  ctx.gate.check_path(&target, given, Need::Write, || {
+    let redirect = if p.str("mode") == Some("append") {
+      ">>"
+    } else {
+      ">"
+    };
+    match p.str("content") {
+      Some(text) if text.len() <= 1024 => {
+        format!(
+          "printf '%s' {} {redirect} {}",
+          shell_quote(text),
+          shell_quote(given)
+        )
+      }
+      _ => format!("cat CONTENT_FILE {redirect} {}", shell_quote(given)),
+    }
+  })?;
   let mode = match p.str("mode").unwrap_or("overwrite") {
     "create" => Mode::Create,
     "overwrite" => Mode::Overwrite,

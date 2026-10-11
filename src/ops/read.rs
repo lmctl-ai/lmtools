@@ -1,8 +1,9 @@
 //! `read_file`: one page of a file, by bytes (`offset` / `maxBytes`) or by lines (`startLine` /
 //! `endLine`). Stateless paging: the response says where the next page starts.
 
-use super::Params;
+use super::{Ctx, Params};
 use crate::error::{Result, ToolError};
+use crate::permissions::{manual_path, Need};
 use crate::util::{absolute, base64};
 use serde_json::{json, Value};
 use std::fs::File;
@@ -112,11 +113,23 @@ fn numbered(content: &str, first_line: u64) -> String {
   out
 }
 
-pub fn run(p: &Params) -> Result<Value> {
+pub fn run(p: &Params, ctx: &Ctx) -> Result<Value> {
   let given = p
     .str("path")
     .ok_or_else(|| ToolError::invalid("INVALID_PATH", "path is required"))?;
   let path = absolute(given)?;
+  ctx.gate.check_path(&path, given, Need::Read, || {
+    match (
+      p.0.get("startLine").and_then(Value::as_u64),
+      p.0.get("endLine").and_then(Value::as_u64),
+    ) {
+      (None, None) => manual_path("cat", given),
+      (start, end) => {
+        let end = end.map_or("$".to_string(), |e| e.to_string());
+        manual_path(&format!("sed -n '{},{end}p'", start.unwrap_or(1)), given)
+      }
+    }
+  })?;
   let (mut file, size) = open(&path, given)?;
   let max_bytes = p.uint("maxBytes", DEFAULT_MAX_BYTES, 1, MAX_BYTES)? as usize;
   let as_base64 = p.flag("asBase64");

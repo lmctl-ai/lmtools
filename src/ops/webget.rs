@@ -122,15 +122,22 @@ fn body_value(bytes: &[u8], binary: bool) -> (Value, bool) {
   }
 }
 
-/// The host check every hop goes through (the permission gate; see `crate::permissions`).
-pub type HostCheck<'a> = &'a dyn Fn(&Url) -> Result<()>;
+/// The operator's equivalent curl command (no header values, no credentials).
+fn manual(url: &Url, follow: bool, out: Option<&str>) -> String {
+  let mut cmd = String::from("curl");
+  if follow {
+    cmd.push_str(" -L");
+  }
+  cmd.push(' ');
+  cmd.push_str(&crate::util::shell_quote(&public_url(url)));
+  if let Some(out) = out {
+    cmd.push_str(" -o ");
+    cmd.push_str(&crate::util::shell_quote(out));
+  }
+  cmd
+}
 
-pub fn run(
-  p: &Params,
-  ctx: &Ctx,
-  check_host: HostCheck,
-  spill_root: Option<&std::path::Path>,
-) -> Result<Value> {
+pub fn run(p: &Params, ctx: &Ctx) -> Result<Value> {
   let raw = p
     .str("url")
     .ok_or_else(|| ToolError::invalid("INVALID_URL", "url is required"))?;
@@ -173,10 +180,19 @@ pub fn run(
     .str("userAgent")
     .map(str::to_string)
     .unwrap_or_else(|| format!("lmtools/{}", env!("CARGO_PKG_VERSION")));
-  let out = p
-    .str("out")
-    .map(|o| out_path(o, !ctx.dry_run))
-    .transpose()?;
+  let out = match p.str("out") {
+    None => None,
+    Some(raw) => {
+      // Checked before any parent directory is created.
+      let resolved = out_path(raw, false)?;
+      ctx
+        .gate
+        .check_out(&resolved, || manual(&url, follow, Some(raw)))?;
+      Some(out_path(raw, !ctx.dry_run)?)
+    }
+  };
+  let spill_root = ctx.gate.output_dir().map(std::path::Path::to_path_buf);
+  let spill_root = spill_root.as_deref();
 
   let agent = ureq::AgentBuilder::new()
     .redirects(0)
@@ -186,7 +202,9 @@ pub fn run(
   let deadline = Instant::now() + timeout;
   let mut redirects = 0;
   let response = loop {
-    check_host(&url)?;
+    ctx
+      .gate
+      .check_host(&url, || manual(&url, follow, p.str("out")))?;
     let remaining = deadline.saturating_duration_since(Instant::now());
     if remaining.is_zero() {
       return Err(ToolError::new(
