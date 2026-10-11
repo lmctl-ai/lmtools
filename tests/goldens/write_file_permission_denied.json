@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "permission denied: notes.txt is inside the working directory, which is readonly (\"cwd\" in <ROOT>/settings.json); lmtools may not write it",
+    "data": {
+      "manual_command": "printf '%s' 'x' > 'notes.txt'",
+      "tool_code": "PERMISSION_DENIED"
+    }
+  }
+}

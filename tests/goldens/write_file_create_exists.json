@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "error": {
+    "code": "CONFLICT",
+    "message": "<ROOT>/notes.txt already exists (mode create)",
+    "data": {
+      "tool_code": "ALREADY_EXISTS"
+    }
+  }
+}

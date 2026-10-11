@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "blob.bin looks binary (a NUL byte in its first 8 KiB); pass asBase64 to read it",
+    "data": {
+      "tool_code": "BINARY_FILE",
+      "total_size": 2
+    }
+  }
+}

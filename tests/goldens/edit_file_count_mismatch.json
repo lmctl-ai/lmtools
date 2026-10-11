@@ -1,0 +1,12 @@
+{
+  "success": false,
+  "error": {
+    "code": "CONFLICT",
+    "message": "expected 1 replacement(s) in notes.txt, found 5; nothing was written",
+    "data": {
+      "expected_count": 1,
+      "replacements": 5,
+      "tool_code": "EDIT_COUNT_MISMATCH"
+    }
+  }
+}

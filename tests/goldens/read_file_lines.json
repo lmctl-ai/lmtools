@@ -1,0 +1,17 @@
+{
+  "bytes_read": 15,
+  "content": "     2\tbeta old\n     3\tgamma\n",
+  "encoding": "utf-8",
+  "end_line": 3,
+  "eof": true,
+  "line_truncated": false,
+  "lossy": false,
+  "next_offset": null,
+  "next_start_line": null,
+  "offset": 6,
+  "path": "notes.txt",
+  "start_line": 2,
+  "total_lines": 3,
+  "total_size": 21,
+  "truncated": false
+}
